@@ -1,0 +1,29 @@
+name: Comprehensive model guardrails
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "models/comprehensive_*.py"
+      - "models/comprehensive_parts/**"
+      - "models/build_comprehensive_runner.py"
+      - "tests/test_comprehensive_models.py"
+      - ".github/workflows/comprehensive-tests.yml"
+
+jobs:
+  guardrails:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install test dependencies
+        run: pip -q install "pandas>=2.2" "numpy>=2.0" "httpx>=0.27" "scikit-learn>=1.5" "joblib>=1.4" "pytest>=8"
+      - name: Rebuild and compile runner
+        run: python -m models.build_comprehensive_runner
+      - name: Run guardrail tests
+        run: pytest -q tests/test_comprehensive_models.py
