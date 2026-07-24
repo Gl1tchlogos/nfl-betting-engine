@@ -22,3 +22,26 @@ jobs:
           SUPABASE_URL: https://rhesgemopvbtwgcytapq.supabase.co
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: python -m ingestion.load_nflverse --start-season 2026 --end-season 2026
+      - name: Refresh pregame feature tables
+        env:
+          SUPABASE_URL: https://rhesgemopvbtwgcytapq.supabase.co
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: |
+          python - <<'PY'
+          import os
+          import httpx
+
+          base_url = os.environ["SUPABASE_URL"].rstrip("/")
+          secret_key = os.environ["SUPABASE_SECRET_KEY"]
+          response = httpx.post(
+              f"{base_url}/rest/v1/rpc/refresh_pregame_features",
+              headers={
+                  "apikey": secret_key,
+                  "Content-Type": "application/json",
+              },
+              json={},
+              timeout=300,
+          )
+          response.raise_for_status()
+          print("Pregame feature tables refreshed successfully")
+          PY
