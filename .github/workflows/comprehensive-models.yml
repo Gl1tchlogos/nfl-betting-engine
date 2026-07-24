@@ -11,6 +11,10 @@ on:
       - ".github/workflows/comprehensive-models.yml"
       - "comprehensive-model-trigger.txt"
 
+concurrency:
+  group: nfl-comprehensive-models
+  cancel-in-progress: true
+
 jobs:
   comprehensive-models:
     runs-on: ubuntu-latest
