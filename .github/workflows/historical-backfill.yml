@@ -1,0 +1,35 @@
+name: Historical NFL backfill
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/historical-backfill.yml"
+  workflow_dispatch:
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install importer dependencies
+        run: pip -q install "pandas>=2.2" "pyarrow>=17" "httpx>=0.27"
+      - name: Import 2016 through 2024
+        env:
+          SUPABASE_URL: https://rhesgemopvbtwgcytapq.supabase.co
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: |
+          python -m ingestion.load_nflverse --start-season 2016 --end-season 2024 2>&1 | tee historical-backfill.log
+      - name: Upload backfill log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: historical-backfill-log
+          path: historical-backfill.log
+          if-no-files-found: ignore
+          retention-days: 3
