@@ -1,0 +1,36 @@
+name: NFL model backtest
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "models/**"
+      - ".github/workflows/model-backtest.yml"
+      - "model-backtest-trigger.txt"
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install model dependencies
+        run: pip -q install "pandas>=2.2" "numpy>=2.0" "httpx>=0.27" "scikit-learn>=1.5" "joblib>=1.4"
+      - name: Run chronological backtests
+        env:
+          SUPABASE_URL: https://rhesgemopvbtwgcytapq.supabase.co
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: python -m models.backtest_baselines --output-dir model-output
+      - name: Upload fitted models and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nfl-baseline-models
+          path: model-output/
+          if-no-files-found: warn
+          retention-days: 30
