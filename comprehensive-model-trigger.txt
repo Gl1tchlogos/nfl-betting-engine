@@ -1,1 +1,1 @@
-Trigger the first comprehensive locked weekly walk-forward run for comprehensive_v1.
+Trigger the optimized comprehensive_v1 locked weekly walk-forward run after domain filtering and pagination indexing.
