@@ -32,6 +32,21 @@ jobs:
           SUPABASE_URL: https://rhesgemopvbtwgcytapq.supabase.co
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: python -m models.run_comprehensive_generated --output-dir comprehensive-model-output --retrain-every 1
+      - name: Apply approval gates and capture quality report
+        env:
+          SUPABASE_URL: https://rhesgemopvbtwgcytapq.supabase.co
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: |
+          curl -fsS -X POST "$SUPABASE_URL/rest/v1/rpc/refresh_model_registry_from_latest_walkforward" \
+            -H "apikey: $SUPABASE_SECRET_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SECRET_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{}'
+          curl -fsS -X POST "$SUPABASE_URL/rest/v1/rpc/capture_data_quality_run" \
+            -H "apikey: $SUPABASE_SECRET_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SECRET_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{}'
       - name: Upload comprehensive models and reports
         if: always()
         uses: actions/upload-artifact@v4
