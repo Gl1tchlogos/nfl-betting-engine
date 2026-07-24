@@ -1,0 +1,42 @@
+name: NFL comprehensive walk-forward models
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "models/comprehensive_*.py"
+      - "models/comprehensive_parts/**"
+      - "models/build_comprehensive_runner.py"
+      - ".github/workflows/comprehensive-models.yml"
+      - "comprehensive-model-trigger.txt"
+
+jobs:
+  comprehensive-models:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install modeling dependencies
+        run: pip -q install "pandas>=2.2" "numpy>=2.0" "httpx>=0.27" "scikit-learn>=1.5" "joblib>=1.4"
+      - name: Rebuild and compile comprehensive runner
+        run: |
+          python -m models.build_comprehensive_runner
+          python -m py_compile models/run_comprehensive_generated.py models/comprehensive_config.py
+      - name: Run locked weekly walk-forward analysis
+        env:
+          SUPABASE_URL: https://rhesgemopvbtwgcytapq.supabase.co
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: python -m models.run_comprehensive_generated --output-dir comprehensive-model-output --retrain-every 1
+      - name: Upload comprehensive models and reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nfl-comprehensive-models
+          path: comprehensive-model-output/
+          if-no-files-found: warn
+          retention-days: 90
