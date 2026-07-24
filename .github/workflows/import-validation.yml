@@ -11,7 +11,7 @@ on:
     paths:
       - "ingestion/**"
       - ".github/workflows/import-validation.yml"
-      - "validation-trigger.txt"
+      - "validation-trigger*.txt"
   workflow_dispatch:
 
 jobs:
@@ -24,52 +24,44 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-      - name: Install importer dependencies
-        run: pip -q install "sqlalchemy>=2.0" "psycopg[binary]>=3.2" "pandas>=2.2" "pyarrow>=17" "httpx>=0.27"
 
-      - name: Verify database connection
+      - name: Install importer dependencies
+        run: pip -q install "pandas>=2.2" "pyarrow>=17" "httpx>=0.27"
+
+      - name: Verify Supabase Data API access
         id: connection
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_URL: https://rhesgemopvbtwgcytapq.supabase.co
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: |
           mkdir -p diagnostics
           python - <<'PY' > diagnostics/connection.txt 2>&1
           import os
           import sys
-          from urllib.parse import urlsplit
-          from sqlalchemy import create_engine, text
+          import httpx
 
-          raw = os.environ.get("DATABASE_URL", "")
-          if not raw:
+          url = os.environ.get("SUPABASE_URL", "").rstrip("/")
+          key = os.environ.get("SUPABASE_SECRET_KEY", "").strip()
+          if not key:
               print("result=failed")
-              print("reason=DATABASE_URL secret is missing")
+              print("reason=SUPABASE_SECRET_KEY is missing")
               sys.exit(1)
-          if "YOUR-PASSWORD" in raw or "CHANGE_ME" in raw or "[YOUR-PASSWORD]" in raw:
+          if not key.startswith("sb_secret_"):
               print("result=failed")
-              print("reason=DATABASE_URL still contains the password placeholder")
+              print("reason=The saved value is not a Supabase secret key")
               sys.exit(1)
 
-          parsed = urlsplit(raw.replace("postgresql+psycopg://", "postgresql://", 1))
-          print(f"host={parsed.hostname or 'unknown'}")
-          print(f"port={parsed.port or 'default'}")
-          print(f"username={parsed.username or 'unknown'}")
-
-          url = raw
-          if url.startswith("postgresql://"):
-              url = url.replace("postgresql://", "postgresql+psycopg://", 1)
-          try:
-              engine = create_engine(url, pool_pre_ping=True, connect_args={"connect_timeout": 15})
-              with engine.connect() as connection:
-                  connection.execute(text("select 1"))
-              print("result=success")
-          except Exception as exc:
-              message = str(exc)
-              if parsed.password:
-                  message = message.replace(parsed.password, "***")
-              print("result=failed")
-              print(f"error_type={type(exc).__name__}")
-              print(f"error={message[-1500:]}")
+          response = httpx.get(
+              f"{url}/rest/v1/games",
+              params={"select": "game_id", "limit": "1"},
+              headers={"apikey": key},
+              timeout=30,
+          )
+          print(f"status_code={response.status_code}")
+          if response.is_error:
+              print(f"error={response.text[-1000:]}")
               sys.exit(1)
+          print("result=success")
           PY
 
       - name: Upload connection diagnostics
@@ -84,7 +76,8 @@ jobs:
         id: import
         continue-on-error: true
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_URL: https://rhesgemopvbtwgcytapq.supabase.co
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: |
           mkdir -p diagnostics
           python -m ingestion.load_nflverse --start-season 2025 --end-season 2025 > diagnostics/import.txt 2>&1
