@@ -7,6 +7,10 @@ on:
       - ".github/workflows/historical-backfill.yml"
   workflow_dispatch:
 
+concurrency:
+  group: historical-nfl-backfill
+  cancel-in-progress: false
+
 jobs:
   backfill:
     runs-on: ubuntu-latest
