@@ -6,6 +6,12 @@ on:
     paths:
       - "ingestion/**"
       - ".github/workflows/import-validation.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "ingestion/**"
+      - ".github/workflows/import-validation.yml"
+      - "validation-trigger.txt"
   workflow_dispatch:
 
 jobs:
