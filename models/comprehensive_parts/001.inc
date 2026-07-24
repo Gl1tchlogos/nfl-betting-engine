@@ -263,7 +263,11 @@ def add_player_derived(frame: pd.DataFrame, targets: Iterable[str]) -> pd.DataFr
     output["late_season"] = (pd.to_numeric(output["week"], errors="coerce") >= 13).astype(int)
     output["team_favored"] = (pd.to_numeric(output["team_spread"], errors="coerce") > 0).astype(int)
 
-    numeric_candidates = set(all_features({k: v for config in PLAYER_TARGETS.values() for k, v in config["groups"].items()}))
+    numeric_candidates = {
+        feature
+        for config in PLAYER_TARGETS.values()
+        for feature in all_features(config["groups"])
+    }
     numeric_candidates.update(targets)
     numeric_candidates.update(
         {
@@ -288,6 +292,21 @@ def add_player_derived(frame: pd.DataFrame, targets: Iterable[str]) -> pd.DataFr
         output[f"{column}_ewm_5"] = output.groupby("player_id", sort=False)[column].transform(
             lambda series: series.shift(1).ewm(span=5, adjust=False, min_periods=2).mean()
         )
+
+    required_ratio_columns = [
+        "passing_yards_avg_5", "passing_attempts_avg_5",
+        "rushing_yards_avg_5", "carries_avg_5",
+        "receiving_yards_avg_5", "targets_avg_5", "receptions_avg_5",
+        "position_passing_yards_allowed_avg_5",
+        "position_passing_attempts_allowed_avg_5",
+        "position_rushing_yards_allowed_avg_5",
+        "position_carries_allowed_avg_5",
+        "position_receiving_yards_allowed_avg_5",
+        "position_targets_allowed_avg_5",
+    ]
+    for column in required_ratio_columns:
+        if column not in output.columns:
+            output[column] = np.nan
 
     output["passing_yards_per_attempt_avg_5"] = output["passing_yards_avg_5"] / output[
         "passing_attempts_avg_5"
