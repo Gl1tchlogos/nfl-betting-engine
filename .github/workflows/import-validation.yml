@@ -29,7 +29,6 @@ jobs:
 
       - name: Verify database connection
         id: connection
-        continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
@@ -83,7 +82,6 @@ jobs:
 
       - name: Import 2025 validation season
         id: import
-        if: steps.connection.outcome == 'success'
         continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -100,8 +98,6 @@ jobs:
           if-no-files-found: ignore
           retention-days: 1
 
-      - name: Fail when validation failed
+      - name: Fail when import validation failed
         if: always()
-        run: |
-          test "${{ steps.connection.outcome }}" = "success"
-          test "${{ steps.import.outcome }}" = "success"
+        run: test "${{ steps.import.outcome }}" = "success"
