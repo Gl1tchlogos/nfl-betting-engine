@@ -21,7 +21,7 @@ jobs:
         env:
           SUPABASE_URL: https://rhesgemopvbtwgcytapq.supabase.co
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-        run: python -m ingestion.load_nflverse --start-season 2026 --end-season 2026
+        run: python -m ingestion.load_current_nflverse --start-season 2026 --end-season 2026
       - name: Refresh pregame feature tables
         env:
           SUPABASE_URL: https://rhesgemopvbtwgcytapq.supabase.co
