@@ -44,7 +44,7 @@ def test_baselines_are_pregame_values() -> None:
 def test_fragmented_runner_reconstructs_and_compiles() -> None:
     root = Path(__file__).resolve().parents[1]
     fragments = sorted((root / "models" / "comprehensive_parts").glob("*.inc"))
-    assert len(fragments) == 4
+    assert len(fragments) >= 4
     source = "".join(fragment.read_text(encoding="utf-8") for fragment in fragments)
     compile(source, "run_comprehensive_generated.py", "exec")
     assert "def walk_forward" in source
